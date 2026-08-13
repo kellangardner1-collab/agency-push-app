@@ -16,17 +16,15 @@
     <button onclick="requestPermission()">Enable Notifications</button>
 
     <script>
-        // Register the background service worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
             .then(() => console.log('Service Worker Registered'));
         }
 
-        // Request explicit Apple push permissions
         function requestPermission() {
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    alert('Notifications Enabled! Saving device token...');
+                    alert('Notifications Enabled!');
                     configurePushSubscription();
                 }
             });
@@ -34,13 +32,12 @@
 
         function configurePushSubscription() {
             navigator.serviceWorker.ready.then(reg => {
-                // Your web server's VAPID public identification key goes here
-                const publicKey = 'YOUR_PUBLIC_VAPID_KEY'; 
+                // Your freshly generated Public Key inserted here
+                const publicKey = 'BFlMq1OPn2NAfZJFg-lwbOZAPgSj0WX6ngcf5JD-NLQ4_BpE_MHLkhUJqXNu3S22C1xaWPxi2ocZKNxax5LDegg'; 
                 reg.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: publicKey
                 }).then(sub => {
-                    // Send this JSON subscription bundle straight to your database
                     console.log('Subscription Object:', JSON.stringify(sub));
                 });
             });
