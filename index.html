@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <title>AI Agency Portal</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; text-align: center; padding: 50px 20px; }
+        button { background: #007AFF; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 12px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>AI Automation Portal</h1>
+    <p>Enable background notifications for your iPhone 17 agency dashboard.</p>
+    <button onclick="requestPermission()">Enable Notifications</button>
+
+    <script>
+        // Register the background service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log('Service Worker Registered'));
+        }
+
+        // Request explicit Apple push permissions
+        function requestPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    alert('Notifications Enabled! Saving device token...');
+                    configurePushSubscription();
+                }
+            });
+        }
+
+        function configurePushSubscription() {
+            navigator.serviceWorker.ready.then(reg => {
+                // Your web server's VAPID public identification key goes here
+                const publicKey = 'YOUR_PUBLIC_VAPID_KEY'; 
+                reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: publicKey
+                }).then(sub => {
+                    // Send this JSON subscription bundle straight to your database
+                    console.log('Subscription Object:', JSON.stringify(sub));
+                });
+            });
+        }
+    </script>
+</body>
+</html>
