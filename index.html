@@ -6,41 +6,96 @@
     <link rel="manifest" href="manifest.json">
     <title>AI Agency Portal</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; text-align: center; padding: 50px 20px; }
-        button { background: #007AFF; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000000; color: #ffffff; text-align: center; padding: 60px 20px; margin: 0; }
+        .container { max-width: 400px; margin: 0 auto; }
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.5px; }
+        p { color: #8e8e93; font-size: 15px; line-height: 1.4; margin-bottom: 40px; }
+        button { background: #007AFF; color: #ffffff; border: none; padding: 16px 32px; font-size: 16px; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%; transition: background 0.2s; }
+        button:active { background: #0056b3; }
+        .json-output { font-family: monospace; background: #1c1c1e; padding: 15px; border-radius: 10px; text-align: left; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-top: 20px; font-size: 13px; display: none; }
     </style>
 </head>
 <body>
-    <h1>AI Automation Portal</h1>
-    <p>Enable background notifications for your iPhone 17 agency dashboard.</p>
-    <button onclick="requestPermission()">Enable Notifications</button>
+    <div class="container">
+        <h1 id="title">AI Automation Portal</h1>
+        <p id="desc">Enable background notifications for your iPhone 17 agency dashboard.</p>
+        <button id="push-btn" onclick="requestPermission()">Enable Notifications</button>
+        <div id="output" class="json-output"></div>
+    </div>
 
     <script>
+        const PUBLIC_KEY = 'BFlMq1OPn2NAfZJFg-lwbOZAPgSj0WX6ngcf5JD-NLQ4_BpE_MHLkhUJqXNu3S22C1xaWPxi2ocZKNxax5LDegg';
+
+        // 1. Register the Service Worker right away
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
-            .then(() => console.log('Service Worker Registered'));
+                .then(reg => {
+                    console.log('Service Worker Active');
+                    handleShortcutInterception();
+                })
+                .catch(err => console.error('Service Worker Failed:', err));
         }
 
+        // 2. Intercept Apple Shortcut requests checking for ?get=1
+        function handleShortcutInterception() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('get') === '1') {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.pushManager.getSubscription().then(sub => {
+                        if (sub) {
+                            // Completely clear the UI and print raw JSON so the shortcut reads data, not HTML
+                            document.body.innerHTML = JSON.stringify(sub);
+                        } else {
+                            document.body.innerHTML = JSON.stringify({ error: "No token found. Open app and tap Enable Notifications button first." });
+                        }
+                    });
+                });
+            }
+        }
+
+        // 3. Button Click: Handle visual permission handshake
         function requestPermission() {
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    alert('Notifications Enabled!');
                     configurePushSubscription();
+                } else {
+                    alert('Permission denied. Please reset app notifications in iOS Settings.');
                 }
             });
         }
 
+        // 4. Secure the device crypto address object token
         function configurePushSubscription() {
             navigator.serviceWorker.ready.then(reg => {
-                // Your freshly generated Public Key inserted here
-                const publicKey = 'BFlMq1OPn2NAfZJFg-lwbOZAPgSj0WX6ngcf5JD-NLQ4_BpE_MHLkhUJqXNu3S22C1xaWPxi2ocZKNxax5LDegg'; 
                 reg.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: publicKey
+                    applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
                 }).then(sub => {
-                    console.log('Subscription Object:', JSON.stringify(sub));
+                    document.getElementById('title').innerText = "Device Registered!";
+                    document.getElementById('desc').innerText = "Your iPhone 17 is securely linked to the automation stream.";
+                    document.getElementById('push-btn').style.display = 'none';
+                    
+                    // Display token locally in case you want to copy it manually
+                    const outputDiv = document.getElementById('output');
+                    outputDiv.innerText = JSON.stringify(sub, null, 2);
+                    outputDiv.style.display = 'block';
+                }).catch(err => {
+                    console.error('Subscription Failed:', err);
+                    alert('Failed to extract push token. Make sure you opened this as a saved Home Screen App!');
                 });
             });
+        }
+
+        // Helper function required by browsers to handle raw public security keys
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
         }
     </script>
 </body>
