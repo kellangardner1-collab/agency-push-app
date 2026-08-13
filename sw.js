@@ -1,8 +1,16 @@
 self.addEventListener('push', function(event) {
-    let payload = event.data ? event.data.text() : 'New agency checklist compiled!';
+    let data = { title: 'AI Automation Engine', body: 'New agency checklist compiled!' };
+    
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            data.body = event.data.text();
+        }
+    }
     
     const options = {
-        body: payload,
+        body: data.body,
         icon: 'https://flaticon.com',
         badge: 'https://flaticon.com',
         vibrate:,
@@ -10,6 +18,11 @@ self.addEventListener('push', function(event) {
     };
 
     event.waitUntil(
-        self.registration.showNotification('AI Automation Engine', options)
+        self.registration.showNotification(data.title, options)
     );
+});
+
+// Immediately activate across all background windows upon compilation
+self.addEventListener('activate', event => {
+    event.waitUntil(clients.claim());
 });
